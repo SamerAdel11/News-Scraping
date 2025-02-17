@@ -10,18 +10,16 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
-
+from ..utils import Save
 class CnnarabicSpider(scrapy.Spider):
     name = "cnnarabic"
     allowed_domains = ["arabic.cnn.com"]
     base_url = "https://arabic.cnn.com"
     
-    BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # Gets the project root
-    save_location = os.path.join(BASE_DIR, "Extracted Data")  # Creates an absolute path
-    os.makedirs(save_location,exist_ok=True)
+
 
     custom_settings = {
-        "FEEDS": {f"{save_location}/news.json": {"format": "json", "overwrite": True}},
+        "FEEDS": {f"{Save.save_location}/cnn.json": {"format": "json", "overwrite": True}}
     }
 
     def __init__(self, keyword=None, *args, **kwargs):
@@ -29,13 +27,6 @@ class CnnarabicSpider(scrapy.Spider):
         self.keyword = keyword
         print(f"Keyword is: {self.keyword}")
 
-    def save_links(self, all_links, cleaned_links):
-        """Saves extracted links to files."""
-        with open(f"{self.save_location}/original_links.txt", "w") as file:
-            file.writelines(f"{link}\n" for link in all_links)
-
-        with open(f"{self.save_location}/cleaned_links.txt", "w") as file:
-            file.writelines(f"{link}\n" for link in cleaned_links)
 
     def start_requests(self):
         """Start crawling based on the keyword."""
@@ -45,13 +36,20 @@ class CnnarabicSpider(scrapy.Spider):
 
         else:
             url = self.base_url
-            yield scrapy.Request(self.base_url,callback=self.parse)
+            yield scrapy.Request(self.base_url,callback=self.parse_home_page)
     
-    def parse(self,response):
-        """ Parse Home Page"""
-        a_tags=response.css("a::attr(href)").getall()
+    def parse_home_page(self,response):
+        """ Parse Home Page """
+
+        # Assigning set to remove reduntant values
+        a_tags=list(set(response.css("div.clearfix a:first-of-type::attr(href)").getall()))
+
+        """ Select the articles has /article/ in their link """
         cleaned_tags=[tag for tag in a_tags if '/article/' in tag]
-        self.save_links(a_tags,cleaned_tags)
+
+        """ Save <a> tags """
+        Save.text("cnn",a_tags)
+        Save.text("cnn_cleaned",cleaned_tags)
         yield from (response.follow(tag,callback=self.parse_article) for tag in cleaned_tags)
 
     def parse_search_page(self, response):
@@ -71,11 +69,10 @@ class CnnarabicSpider(scrapy.Spider):
             # Extract all article links
             a_tags = [a.get_attribute("href") for a in driver.find_elements(By.CSS_SELECTOR, "h3 a")]
             cleaned_links = [link for link in a_tags if "/article/" in link]
-
-            # Save extracted links
-            self.save_links(a_tags, cleaned_links)
-
-            print("Cleaned links:", cleaned_links)
+            
+            """ Save <a> tags """
+            Save.text(f"Cnn_{self.keyword}",a_tags)
+            Save.text(f"Cnn_{self.keyword}__cleaned",cleaned_links)
 
             # Pass links to Scrapy for further processing
             for link in cleaned_links:
