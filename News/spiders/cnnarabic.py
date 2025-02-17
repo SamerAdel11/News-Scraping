@@ -96,6 +96,8 @@ class CnnarabicSpider(scrapy.Spider):
         article_object["title"] = response.css("h1.flipboard-title::text").get()
         article_object["url"] = response.url
         article_object["category"] = response.css("a[rel='category']::text").get()
+        article_object['content'] = response.xpath('//*[@id="body-text"]//*[not(ancestor::div[contains(@class, "browsi-skip")])]/text()').getall()
+        article_object['content_html']= " ".join(response.css("#body-text *").getall())
         article_object["tags"] = response.css("ul.browsi-skip a[rel='tag']::text").getall()
         article_object["published_at"] = response.css("header.article-header time::attr(datetime)").get()
 
