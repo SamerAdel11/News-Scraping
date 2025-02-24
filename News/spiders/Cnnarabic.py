@@ -51,10 +51,10 @@ class CnnarabicSpider(scrapy.Spider):
         cleaned_tags=[tag for tag in a_tags if '/article/' in tag]
 
         # Save <a> tags 
-        Save.empty_folder()
-        Save.text("cnn",a_tags)
+        # Save.empty_folder()
+        # Save.text("cnn",a_tags)
         print("original a tags passed")
-        Save.text("cnn_cleaned",cleaned_tags)
+        # Save.text("cnn_cleaned",cleaned_tags)
         yield from (response.follow(tag,callback=self.parse_article) for tag in cleaned_tags)
 
     def parse_search_page(self, response):
